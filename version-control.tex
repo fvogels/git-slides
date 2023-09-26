@@ -1,0 +1,343 @@
+% IGNORE
+
+\section{Version Control}
+
+\begin{frame}
+  \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}
+  \frametitle{Problem Statement}
+  \begin{itemize}
+    \item Modifying code is risky
+    \item We might break something
+    \item Keep a fully functional version somewhere safe (= a backup)
+    \item In case of trouble, we can simply restore this backup
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Manual Solution}
+  \begin{center}
+    \begin{tikzpicture}
+      \path[use as bounding box] (0,0) rectangle (3,-3);
+      \directory[id=root,position={(0,0)}]{project}
+      \directory[id=working-area,subdirectory of=root distance 1]{working-area}
+      \directory[id=wa-src,subdirectory of=working-area distance 1]{src}
+      \directory[id=wa-app,subdirectory of=wa-src distance 1]{app.py}
+      \directory[id=wa-lib,subdirectory of=wa-src distance 2]{lib.py}
+      \directory[id=backup,subdirectory of=root distance 5]{backup}
+
+      \only<3->{
+        \directory[id=bu-src,subdirectory of=backup distance 1]{src}
+        \directory[id=bu-app,subdirectory of=bu-src distance 1]{app.py}
+        \directory[id=bu-lib,subdirectory of=bu-src distance 2]{lib.py}
+      }
+
+      \draw[fs/dirlink] (root) |- (backup);
+      \draw[fs/dirlink] (root) |- (working-area);
+      \draw[fs/dirlink] (working-area) |- (wa-src);
+      \draw[fs/dirlink] (wa-src) |- (wa-app);
+      \draw[fs/dirlink] (wa-src) |- (wa-lib);
+
+      \only<3->{
+        \draw[fs/dirlink] (backup) |- (bu-src);
+        \draw[fs/dirlink] (bu-src) |- (bu-app);
+        \draw[fs/dirlink] (bu-src) |- (bu-lib);
+      }
+
+      \only<1>{
+        \draw[comment line,latex-] (working-area-node.east) -| ++(1,0.75) node[comment box,anchor=south] (comment) {Develop code in this folder};
+      }
+      \only<2>{
+        \draw[comment line,latex-] (backup-node.east) -| ++(2,-0.5) node[comment box,anchor=north] {Regularly copy code into here};
+      }
+      \only<3>{
+        \draw[copy arrow] (working-area-node.east) -- ++(1,0) |- (backup-node.east) node[midway,below] {copy};
+      }
+    \end{tikzpicture}
+  \end{center}
+  \vskip1cm
+  \begin{overprint}
+    \onslide<3>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{8cm}{
+            \# Inside working-area \\
+            \$ rm -r ../backup \\
+            \$ cp -r * ../backup
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Problem Statement}
+  \begin{itemize}
+    \item We don't just want backup of last working version
+    \item We'd like to keep track of \emph{all} previous versions
+    \item We need a separate directory per backup
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Manual Solution}
+  \begin{center}
+    \begin{tikzpicture}
+      \path[use as bounding box] (0,0) rectangle (3,-2);
+      \directory[id=root,position={(0,0)}]{project}
+      \directory[id=working-area,subdirectory of=root distance 1]{working-area}
+      \directory[id=backups,subdirectory of=root distance 2]{backups}
+
+      \draw[fs/dirlink] (root) |- (backups);
+      \draw[fs/dirlink] (root) |- (working-area);
+
+      \only<2->{
+        \directory[id=backup1,subdirectory of=backups distance 1]{20220329-1531}
+        \draw[fs/dirlink] (backups) |- (backup1);
+      }
+
+      \only<2>{
+        \draw[copy arrow] (working-area-node.east) -- ++(1,0) |- (backup1-node.east);
+      }
+
+      \only<3->{
+        \directory[id=backup2,subdirectory of=backups distance 2]{20220330-1022}
+        \draw[fs/dirlink] (backups) |- (backup2);
+      }
+
+      \only<3>{
+        \draw[copy arrow] (working-area-node.east) -- ++(1,0) |- (backup2-node.east);
+      }
+
+      \only<4->{
+        \directory[id=backup3,subdirectory of=backups distance 3]{20220331-1503}
+        \draw[fs/dirlink] (backups) |- (backup3);
+      }
+
+      \only<4>{
+        \draw[copy arrow] (working-area-node.east) -- ++(1,0) |- (backup3-node.east);
+      }
+
+    \end{tikzpicture}
+  \end{center}
+  \vskip1cm
+  \begin{overprint}
+    \onslide<2-4>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{8cm}{
+            \# Inside working-area \\
+            \$ DIR=../backups/\`{}date +\%Y\%m\%d-\%H\%m\`{} \\
+            \$ mkdir -p \$DIR \\
+            \$ cp -r * \$DIR
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Git To The Rescue}
+  \begin{itemize}
+    \item Git automates this process
+    \item Git is smart about storage
+      \begin{itemize}
+        \item Will not duplicate files needlessly
+        \item Uses delta compression
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Git Modus Operandi}
+  \begin{center}
+    \begin{tikzpicture}
+      \directory[id=root,position={(0,0)}]{project}
+      \directory[id=git,subdirectory of=root distance 1]{.git}
+      \directory[id=src,subdirectory of=root distance 2]{src}
+      \directory[id=app,subdirectory of=src distance 1]{app.py}
+      \directory[id=lib,subdirectory of=src distance 2]{lib.py}
+
+      \draw[fs/dirlink] (root) |- (git);
+      \draw[fs/dirlink] (root) |- (src);
+      \draw[fs/dirlink] (src) |- (app);
+      \draw[fs/dirlink] (src) |- (lib);
+
+      \visible<4->{
+        \node[git/commit] (commit v1) at (0,-3) {v1};
+      }
+      \visible<7->{
+        \node[git/commit] (commit v2) at ($ (commit v1) + (2,0) $) {v2};
+        \draw[git/commit arrow] (commit v1) -- (commit v2);
+      }
+
+      \begin{scope}[overlay]
+        \only<1>{
+          \draw[comment line,latex-] (root-node.east) -| ++(1,0.5) node[comment box,anchor=south] {You work directly in project's root directory};
+        }
+        \only<2>{
+          \draw[comment line,latex-] (git-node.east) -| ++(1,1) node[comment box,anchor=south] {Git stores data in hidden directory};
+        }
+        \only<3>{
+          \draw[comment line,latex-] (app-node.east) -| ++(1,-1) node[comment box,anchor=north] (explanation) {\parbox{5cm}{First, you must let Git know which files should be backed up}};
+          \draw[comment line,latex-] (lib-node.east) -| (explanation.north);
+        }
+        \only<4>{
+          \draw[comment line,latex-] (git-node.east) -| ++(1.5,0.75) node[comment box,anchor=south] {\parbox{5cm}{\emph{Committing} tells Git to take a snapshot and store it internally}};
+          \draw[comment line,latex-] (commit v1.west) -| ++(-1.25,0.75) node[comment box,anchor=south] {\parbox{3cm}{We represent a commit by a circle}};
+        }
+        \only<5>{
+          \draw[comment line,latex-] (app-node.east) -| ++(1,-1) node[comment box,anchor=north] (explanation) {Say you update this file};
+        }
+        \only<6>{
+          \draw[comment line,latex-] (app-node.east) -| ++(1,-1) node[comment box,anchor=north] (explanation) {\parbox{5cm}{We need to tell Git explicitly which file changes to commit}};
+        }
+        \only<7>{
+          \draw[comment line,latex-] (commit v2.east) -| ++(1,-0.5) node[comment box,anchor=north] {A new commit is added};
+        }
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+  \vskip1cm
+  \begin{overprint}
+    \onslide<3>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{8cm}{
+            \$ git add src/*.py
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+
+    \onslide<4>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{8cm}{
+            \$ git commit -m 'v1'
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+
+    \onslide<6>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{8cm}{
+            \$ git add src/app.py
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+
+    \onslide<7>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{8cm}{
+            \$ git commit -m 'v2'
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Commit Chain}
+  \begin{center}
+    \begin{tikzpicture}[commit data/.style={draw}]
+      \foreach[evaluate={-1.5*(\i-1)} as \y] \i in {1,...,4} {
+        \coordinate (commit position \i) at (0,\y);
+      }
+
+      \node[git/commit] (commit 1) at (commit position 1) {};
+
+      \visible<1-4>{
+        \node[comment box,overlay] (comment) at ($ (commit position 1) ! 0.5 ! (commit position 4) + (4,0) $) {\parbox{4cm}{New commits are made as project progresses}};
+      }
+      \visible<1>{
+        \draw[comment line,latex-,overlay] (commit 1.east) -| (comment);
+      }
+
+      \foreach[evaluate={int(\i-1)} as \j,evaluate={\i} as \slideindex] \i in {2,...,4} {
+        \visible<\slideindex->{
+          \node[git/commit] (commit \i) at (commit position \i) {};
+          \draw[git/commit arrow] (commit \j) -- (commit \i);
+        }
+        \visible<\slideindex>{
+          \draw[comment line,latex-] (commit \i.east) -| (comment);
+        }
+      }
+
+      \visible<5->{
+        \node[anchor=west,font=\tiny,commit data] (commit data 1) at ($ (commit 1) + (0.25,0) $) {
+          \parbox{6cm}{
+            \begin{tabular}{ll}
+              \textbf{Message} & Added sound effects \\
+              \textbf{Author} & John \\
+              \textbf{Date} & 24 March 2022 \\
+              \textbf{Time} & 15:25 \\
+            \end{tabular}
+          }
+        };
+
+        \node[anchor=west,font=\tiny,commit data] (commit data 2) at ($ (commit 2) + (0.25,0) $) {
+          \parbox{6cm}{
+            \begin{tabular}{ll}
+              \textbf{Message} & Increased spaceship speed \\
+              \textbf{Author} & Peter \\
+              \textbf{Date} & 24 March 2022 \\
+              \textbf{Time} & 15:31 \\
+            \end{tabular}
+          }
+        };
+
+        \node[anchor=west,font=\tiny,commit data] (commit data 3) at ($ (commit 3) + (0.25,0) $) {
+          \parbox{6cm}{
+            \begin{tabular}{ll}
+              \textbf{Message} & Optimized collision detection algorithm \\
+              \textbf{Author} & Anna \\
+              \textbf{Date} & 24 March 2022 \\
+              \textbf{Time} & 16:11 \\
+            \end{tabular}
+          }
+        };
+
+        \node[anchor=west,font=\tiny,commit data] (commit data 4) at ($ (commit 4) + (0.25,0) $) {
+          \parbox{6cm}{
+            \begin{tabular}{ll}
+              \textbf{Message} & Changed text color in introduction \\
+              \textbf{Author} & Peter \\
+              \textbf{Date} & 24 March 2022 \\
+              \textbf{Time} & 17:44 \\
+            \end{tabular}
+          }
+        };
+      }
+
+      \visible<5>{
+        \begin{scope}[overlay]
+          \node[comment box] (comment) at ($ (commit data 1.north east) + (0.25,0.25) $) {\parbox{3.5cm}{Git stores metadata about each commit}};
+          \draw[comment line,-latex] (comment.south) |- (commit data 1.east);
+          \draw[comment line,-latex] (comment.south) |- (commit data 2.east);
+          \draw[comment line,-latex] (comment.south) |- (commit data 3.east);
+          \draw[comment line,-latex] (comment.south) |- (commit data 4.east);
+        \end{scope}
+      }
+
+      \visible<6>{
+        \node[comment box] at ($ (commit data 4.south east) $) {\parbox{3.5cm}{Each commit represents a small update}};
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}

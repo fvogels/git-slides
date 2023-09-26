@@ -1,0 +1,479 @@
+% IGNORE
+
+\section{Merging}
+
+\begin{frame}
+  \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}
+  \frametitle{Problem Statement}
+  \begin{itemize}
+    \item Each feature on separate branch
+    \item We need a way to merge features
+  \end{itemize}
+  \vskip1cm
+  \begin{center}
+    \begin{tikzpicture}
+      \node[git/commit] (c0) at (0,0) {};
+      \node (end) at (6,0) { ? };
+
+      \foreach[count=\i] \y in {-0.25,-0.75,0.25,0.75} {
+        \foreach \x in {1,...,5} {
+          \node[git/commit] (c\i-\x) at (\x,\y) {};
+        }
+        \foreach[evaluate={int(\x-1)} as \z] \x in {2,...,5} {
+          \draw[git/commit arrow] (c\i-\z) -- (c\i-\x);
+        }
+        \draw[git/commit arrow] (c0) -- (c\i-1);
+        \draw[git/commit arrow] (c\i-5) -- (end);
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Manual Solution}
+  \begin{center}
+    \begin{tikzpicture}
+      \path[use as bounding box] (0,0) rectangle ++(6,-5.5);
+
+      \only<1-2>{
+        \directory[id=root,position={(0,0)}]{project}
+        \directory[id=trunk,subdirectory of=root distance 1]{trunk}
+        \directory[id=tb1,subdirectory of=trunk distance 1]{20220329-1531}
+        \directory[id=tb2,subdirectory of=trunk distance 2]{20220330-1022}
+        \directory[id=tb3,subdirectory of=trunk distance 3]{20220330-1357}
+
+        \directory[id=feature a,subdirectory of=root distance 5]{feature-a}
+        \directory[id=a working area,subdirectory of=feature a distance 1]{working-area}
+        \directory[id=a backups,subdirectory of=feature a distance 2]{backups}
+        \directory[id=a backups 1,subdirectory of=a backups distance 1]{20220331-1403}
+        \directory[id=a backups 2,subdirectory of=a backups distance 2]{20220331-1512}
+        \directory[id=a backups 3,subdirectory of=a backups distance 3]{20220331-1544}
+        \directory[id=a backups 4,subdirectory of=a backups distance 4]{20220401-1024}
+
+        \draw[fs/dirlink] (root) |- (trunk);
+        \draw[fs/dirlink] (trunk) |- (tb1);
+        \draw[fs/dirlink] (trunk) |- (tb2);
+        \draw[fs/dirlink] (trunk) |- (tb3);
+
+        \draw[fs/dirlink] (root) |- (feature a);
+        \draw[fs/dirlink] (feature a) |- (a working area);
+        \draw[fs/dirlink] (feature a) |- (a backups);
+        \draw[fs/dirlink] (a backups) |- (a backups 1);
+        \draw[fs/dirlink] (a backups) |- (a backups 2);
+        \draw[fs/dirlink] (a backups) |- (a backups 3);
+        \draw[fs/dirlink] (a backups) |- (a backups 4);
+      }
+
+      \only<3->{
+        \directory[id=root,position={(0,0)}]{project}
+        \directory[id=trunk,subdirectory of=root distance 1]{trunk}
+        \directory[id=tb1,subdirectory of=trunk distance 1]{20220329-1531}
+        \directory[id=tb2,subdirectory of=trunk distance 2]{20220330-1022}
+        \directory[id=tb3,subdirectory of=trunk distance 3]{20220330-1357}
+        \directory[id=a backups 1,subdirectory of=trunk distance 4]{20220331-1403}
+        \directory[id=a backups 2,subdirectory of=trunk distance 5]{20220331-1512}
+        \directory[id=a backups 3,subdirectory of=trunk distance 6]{20220331-1544}
+        \directory[id=a backups 4,subdirectory of=trunk distance 7]{20220401-1024}
+
+        \draw[fs/dirlink] (root) |- (trunk);
+        \draw[fs/dirlink] (trunk) |- (tb1);
+        \draw[fs/dirlink] (trunk) |- (tb2);
+        \draw[fs/dirlink] (trunk) |- (tb3);
+        \draw[fs/dirlink] (trunk) |- (a backups 1);
+        \draw[fs/dirlink] (trunk) |- (a backups 2);
+        \draw[fs/dirlink] (trunk) |- (a backups 3);
+        \draw[fs/dirlink] (trunk) |- (a backups 4);
+      }
+
+      \only<1>{
+        \draw[comment line,latex-] (a backups 4-node.east) -| ++(2.5,1) node[comment box,anchor=south] (comment) {\parbox{4cm}{Feature a has been finalized}};
+      }
+
+      \only<2>{
+        \node[comment box,anchor=west] at ($ (trunk-node.east) + (3,0) $) {\parbox{4cm}{Finished features should be incorporated into the trunk}};
+
+        \foreach \i in {1,2,3,4} {
+          \draw[move arrow] (a backups \i-node.east) -- ++(0.5,0) |- (trunk-node.east);
+        }
+      }
+    \end{tikzpicture}
+  \end{center}
+  \begin{overprint}
+    \onslide<2>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \$ mv feature-a/backups/* trunk
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Merging}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[git/commit] (master 1) at (0,0) {};
+      \node[git/commit] (master 2) at ($ (master 1) + (1,0) $) {};
+      \node[git/commit] (master 3) at ($ (master 2) + (1,0) $) {};
+      \node[git/commit] (feature 1) at ($ (master 3) + (1,1) $) {};
+      \node[git/commit] (feature 2) at ($ (feature 1) + (1,0) $) {};
+      \node[git/commit] (feature 3) at ($ (feature 2) + (1,0) $) {};
+      \node[git/commit] (feature 4) at ($ (feature 3) + (1,0) $) {};
+
+      \visible<2>{
+        \node[git/commit] (merged) at ($ (feature 4) + (1,-1) $) {};
+      }
+
+      \foreach \x/\y in {master 1/master 2,master 2/master 3,master 3/feature 1,feature 1/feature 2,feature 2/feature 3,feature 3/feature 4} {
+        \draw[git/commit arrow] (\x) -- (\y);
+      }
+
+      \visible<1>{
+        \draw[latex-] (master 3) -- ++(0,-1) node[git/ref] (master) {\master};
+      }
+      \visible<2->{
+        \draw[latex-] (merged) -- ++(0,-1) node[git/ref] (master merged) {\master};
+      }
+
+      \draw[latex-] (feature 4) -- ++(0,1) node[git/ref] (master) {feature};
+
+      \visible<2>{
+        \draw[git/commit arrow] (master 3) -- (merged);
+        \draw[git/commit arrow] (feature 4) -- (merged);
+      }
+
+      \only<1>{
+        \begin{scope}[overlay]
+          \draw[latex-,comment line] (feature 4) -- ++(0,-1) node[comment box,anchor=north] {Fully developed feature};
+        \end{scope}
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \draw[latex-,comment line] (master merged) -- ++(-1,0) node[comment box,anchor=east] {\parbox{5cm}{A new commit is made to join \texttt{\master} and \texttt{feature} {\tiny (white lie)}}};
+        \end{scope}
+      }
+    \end{tikzpicture}
+  \end{center}
+  \vskip5mm
+  \begin{overprint}
+    \onslide<2>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \parbox{4cm}{
+            \$ git checkout master \\
+            \$ git merge feature
+          }
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Problem Statement}
+  \begin{itemize}
+    \item Example situation was very easy to deal with
+    \item The \texttt{feature} branch is an extension of \texttt{\master}
+    \item Merging consists of simply copying from \texttt{feature} to \texttt{\master}
+    \item But it's not always this simple\dots
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Multiple Branches}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[git/commit] (master 1) at (0,0) {};
+      \node[git/commit] (master 2) at ($ (master 1) + (1,0) $) {};
+      \node[git/commit] (master 3) at ($ (master 2) + (1,0) $) {};
+      \node[git/commit] (feature a 1) at ($ (master 3) + (1,1) $) {};
+      \node[git/commit] (feature a 2) at ($ (feature a 1) + (1,0) $) {};
+      \node[git/commit] (feature a 3) at ($ (feature a 2) + (1,0) $) {};
+      \node[git/commit] (feature b 1) at ($ (master 3) + (1,-1) $) {};
+      \node[git/commit] (feature b 2) at ($ (feature b 1) + (1,0) $) {};
+      \node[git/commit] (feature b 3) at ($ (feature b 2) + (1,0) $) {};
+      \node[git/commit] (feature b 4) at ($ (feature b 3) + (1,0) $) {};
+      \node[git/commit] (feature b 5) at ($ (feature b 4) + (1,0) $) {};
+      \node[git/commit] (master a merge) at ($ (feature a 3) + (1,-1) $) {};
+      \visible<3->{
+        \node (master b merge) at ($ (feature b 5) + (1,1) $) {?};
+      }
+
+      \foreach \x/\y in {master 1/master 2,master 2/master 3,master 3/feature a 1,feature a 1/feature a 2,feature a 2/feature a 3,feature a 3/master a merge,master 3/feature b 1,feature b 1/feature b 2,feature b 2/feature b 3,feature b 3/feature b 4,feature b 4/feature b 5,master 3/master a merge} {
+        \draw[git/commit arrow] (\x) -- (\y);
+      }
+
+      \visible<3->{
+        \foreach \x/\y in {master a merge/master b merge,feature b 5/master b merge} {
+          \draw[git/commit arrow] (\x) -- (\y);
+        }
+      }
+
+      \draw[latex-] (master a merge) -- ++(0,0.5) node[git/ref,anchor=south] (master) { \master };
+      \draw[latex-] (feature a 3) -- ++(0,0.5) node[git/ref,anchor=south] (feature a) { feature-a };
+      \draw[latex-] (feature b 5) -- ++(0,-0.5) node[git/ref,anchor=north] (feature b) { feature-b };
+
+      \only<1>{
+        \begin{scope}[overlay]
+          \draw[latex-,comment line] (feature b) -- ++(0,-0.5) node[comment box,anchor=north] {\parbox{5cm}{Developed separately in parallel with feature A}};
+        \end{scope}
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \node[comment box,anchor=east] at ($ (feature b) + (-1,-1) $) {\parbox{5cm}{We cannot just copy feature B over \master: we would lose feature A}};
+        \end{scope}
+      }
+
+      \only<3>{
+        \begin{scope}[overlay]
+          \draw[latex-,comment line] (master b merge) -- ++(0,1) node[comment box,anchor=south] {\parbox{4cm}{Some Git magic needs to happen here}};
+        \end{scope}
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Merging: Separate Files}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[git/commit] (master) at (0,0) {};
+      \node[git/commit] (feature a) at ($ (master) + (1,1) $) {};
+      \node[git/commit] (feature b) at ($ (master) + (1,-1) $) {};
+      \node (merge) at ($ (feature a) + (1,-1) $) {?};
+
+      \foreach \x/\y in {master/feature a,master/feature b,feature a/merge,feature b/merge,master/merge} {
+        \draw[git/commit arrow] (\x) -- (\y);
+      }
+
+      \draw[latex-] (master) -- ++(-0.5,0) node[git/ref,anchor=east] (master ref) {\master};
+      \draw[latex-] (feature a) -- ++(0,0.5) node[git/ref,anchor=south] (a ref) {feature-a};
+      \draw[latex-] (feature b) -- ++(0,-0.5) node[git/ref,anchor=north] (b ref) {feature-b};
+
+      \only<1>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (a ref) -- ++(0,0.5) node[comment box,anchor=south] {Added file \texttt{a.py}};
+          \draw[comment line,latex-] (b ref) -- ++(0,-0.5) node[comment box,anchor=north] {Added file \texttt{b.py}};
+        \end{scope}
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (merge) -- ++(0,1) node[comment box,anchor=south] {Simply add both \texttt{a.py} and \texttt{b.py}};
+        \end{scope}
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Merging: Branches Modify Same File}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[git/commit] (master) at (0,0) {};
+      \node[git/commit] (feature a) at ($ (master) + (1,1) $) {};
+      \node[git/commit] (feature b) at ($ (master) + (1,-1) $) {};
+      \node (merge) at ($ (feature a) + (1,-1) $) {?};
+
+      \foreach \x/\y in {master/feature a,master/feature b,feature a/merge,feature b/merge,master/merge} {
+        \draw[git/commit arrow] (\x) -- (\y);
+      }
+
+      \draw[latex-] (master) -- ++(-0.5,0) node[git/ref,anchor=east] (master ref) {\master};
+      \draw[latex-] (feature a) -- ++(0,0.5) node[git/ref,anchor=south] (a ref) {feature-a};
+      \draw[latex-] (feature b) -- ++(0,-0.5) node[git/ref,anchor=north] (b ref) {feature-b};
+
+      \only<1>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (a ref) -- ++(0,0.5) node[comment box,anchor=south] {Updated file \texttt{app.py}};
+          \draw[comment line,latex-] (b ref) -- ++(0,-0.5) node[comment box,anchor=north] {Updated file \texttt{app.py}};
+        \end{scope}
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (merge) -- ++(0,1) node[comment box,anchor=south] {Must somehow merge changes to \texttt{app.py}};
+        \end{scope}
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Merge Files}
+  \begin{center}
+    \begin{tikzpicture}
+      \foreach[count=\i] \y in {0,-0.2,...,-5} {
+        \coordinate (left line \i) at (0,\y);
+        \coordinate (middle line \i) at (4,\y);
+        \coordinate (right line \i) at (8,\y);
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {1,2,9,10,...,26} {
+        \codeline[x=0,y=\y]
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {3,...,8} {
+        \codeline[x=0,y=\y,color=red]
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {1,...,16,24,25,26} {
+        \codeline[x=8,y=\y]
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {17,...,23} {
+        \codeline[x=8,y=\y,color=green]
+      }
+
+      \coordinate (top left) at (left line 1);
+      \coordinate (bottom left) at (left line 26);
+      \coordinate (middle left) at ($ (top left) ! 0.5 ! (bottom left) $);
+
+      \coordinate (top right) at (right line 1);
+      \coordinate (bottom right) at (right line 26);
+      \coordinate (middle right) at ($ (top right) ! 0.5 ! (bottom right) $);
+
+      \node[anchor=south west,minimum width=3cm] at (0,0.25) {\texttt{feature-a}};
+      \node[anchor=south west,minimum width=3cm] at (4,0.25) {merged result};
+      \node[anchor=south west,minimum width=3cm] at (8,0.25) {\texttt{feature-b}};
+
+      \only<1>{
+        \draw[|-|] ($ (left line 1) + (3.5,0) $) -- ($ (left line 26) + (3.5, 0) $);
+        \draw[|-|] ($ (right line 1) + (-0.5,0) $) -- ($ (right line 26) + (-0.5, 0) $);
+        \draw[latex-,comment line] ($ (top left) ! 0.33 ! (bottom left) + (3.5,0) $) -- ++(0.5,0) node[comment box,anchor=west] {\parbox{3cm}{\texttt{app.py} according to \texttt{feature-a}}};
+        \draw[latex-,comment line] ($ (top right) ! 0.66 ! (bottom right) + (-0.5,0) $) -- ++(-0.5,0) node[comment box,anchor=east] {\parbox{3cm}{\texttt{app.py} according to \texttt{feature-b}}};
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \draw[opacity=0.25,fill=red] ($ (left line 3) + (-0.1,0.1) $) rectangle ($ (left line 8) + (3.5,-0.1) $);
+          \draw[opacity=0.25,fill=red] ($ (right line 17) + (-0.1,0.1) $) rectangle ($ (right line 23) + (3.5,-0.1) $);
+          \draw[latex-,comment line] ($ (left line 3) ! 0.5 ! (left line 8) + (3.5,0) $) -- ++(0.5,0) node[comment box,anchor=west] {\parbox{3.25cm}{Modifications made by \texttt{feature-a}}};
+          \draw[latex-,comment line] ($ (right line 17) ! 0.5 ! (right line 23) + (-0.1,0) $) -- ++(-0.5,0) node[comment box,anchor=east] {\parbox{3.25cm}{Modifications made by \texttt{feature-b}}};
+        \end{scope}
+      }
+
+      \only<3->{
+        \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {1,2,9,10,...,16,24,25,26} {
+          \codeline[x=4,y=\y]
+        }
+      }
+
+      \only<3>{
+        \begin{scope}[overlay]
+          \node[comment box,anchor=south west] at ($ (left line 25) + (0.1,0.1) $) { \parbox{4cm}{Unchanged parts can be preserved in merged result} };
+        \end{scope}
+      }
+
+      \only<4->{
+        \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {3,...,8} {
+        \codeline[x=4,y=\y,color=red]
+        }
+
+        \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {17,...,23} {
+          \codeline[x=4,y=\y,color=green]
+        }
+      }
+
+      \only<4>{
+        \begin{scope}[overlay]
+          \node[comment box,anchor=north west] at ($ (middle line 10) + (-1.1,0.1) $) { \parbox{4cm}{Changes make it into to merged result} };
+          \coordinate (left start) at ($ (left line 3) + (2,0) $);
+          \coordinate (left end) at ($ (left line 8) + (2,0) $);
+          \coordinate (left middle) at ($ (left start) ! 0.5 ! (left end) $);
+          \coordinate (lmiddle start) at ($ (middle line 3) + (-0.2,0) $);
+          \coordinate (lmiddle end) at ($ (middle line 8) + (-0.2,0) $);
+          \coordinate (lmiddle middle) at ($ (lmiddle start) ! 0.5 ! (lmiddle end) $);
+
+          \coordinate (right start) at ($ (right line 17) + (-0.2,0) $);
+          \coordinate (right end) at ($ (right line 23) + (-0.2,0) $);
+          \coordinate (right middle) at ($ (right start) ! 0.5 ! (right end) $);
+          \coordinate (rmiddle start) at ($ (middle line 17) + (3.3,0) $);
+          \coordinate (rmiddle end) at ($ (middle line 23) + (3.3,0) $);
+          \coordinate (rmiddle middle) at ($ (rmiddle start) ! 0.5 ! (rmiddle end) $);
+
+          \draw[|-|] (left start) -- (left end);
+          \draw[|-|] (lmiddle start) -- (lmiddle end);
+          \draw[-latex,thick] (left middle) -- (lmiddle middle);
+
+          \draw[|-|] (right start) -- (right end);
+          \draw[|-|] (rmiddle start) -- (rmiddle end);
+          \draw[-latex,thick] (right middle) -- (rmiddle middle);
+        \end{scope}
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Merge Conflicts}
+  \begin{center}
+    \begin{tikzpicture}
+      \foreach[count=\i] \y in {0,-0.2,...,-5} {
+        \coordinate (left line \i) at (0,\y);
+        \coordinate (middle line \i) at (4,\y);
+        \coordinate (right line \i) at (8,\y);
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {1,2,...,9,17,18,...,26} {
+        \codeline[x=0,y=\y]
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {10,...,16} {
+        \codeline[x=0,y=\y,color=red]
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {1,...,12,20,21,...,26} {
+        \codeline[x=8,y=\y]
+      }
+
+      \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {13,...,19} {
+        \codeline[x=8,y=\y,color=green]
+      }
+
+      \coordinate (top left) at (left line 1);
+      \coordinate (bottom left) at (left line 26);
+      \coordinate (middle left) at ($ (top left) ! 0.5 ! (bottom left) $);
+
+      \coordinate (top right) at (right line 1);
+      \coordinate (bottom right) at (right line 26);
+      \coordinate (middle right) at ($ (top right) ! 0.5 ! (bottom right) $);
+
+      \node[anchor=south west,minimum width=3cm] at (0,0.25) {\texttt{feature-a}};
+      \node[anchor=south west,minimum width=3cm] at (4,0.25) {merged result};
+      \node[anchor=south west,minimum width=3cm] at (8,0.25) {\texttt{feature-b}};
+
+      \only<1>{
+        \begin{scope}[overlay]
+          \node[comment box,anchor=south west] at ($ (left line 25) + (0.1,0.1) $) { \parbox{6cm}{Consider the case where \texttt{feature-a} and \texttt{feature-b} updated the overlapping pieces of code} };
+        \end{scope}
+      }
+
+      \only<2->{
+        \foreach[evaluate={(\i-1)*-0.2} as \y] \i in {1,...,9,20,21,...,26} {
+          \codeline[x=4,y=\y]
+        }
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \node[comment box,anchor=south west] at ($ (left line 25) + (0.1,0.1) $) { \parbox{4cm}{Unchanged parts can again be preserved} };
+        \end{scope}
+      }
+
+      \only<3->{
+        \node at ($ (middle line 15) + (1,0) $) (conflict) {\Huge ?};
+        \node[comment box,anchor=south west] at ($ (left line 25) + (0.1,-0.5) $) { \parbox{6cm}{However, Git cannot possibly guess how to merge the overlapping changes} };
+        \draw[latex-,comment line] (conflict) -- ++(0,1) node[comment box,anchor=south] {Merge conflict};
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}

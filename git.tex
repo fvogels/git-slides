@@ -1,0 +1,104 @@
+% PDF
+\documentclass{beamer}
+\usepackage{tikz}
+
+\usetikzlibrary{math,calc,shadows}
+
+\title{Git}
+
+\mode<presentation>
+\usetheme[height=.75cm,compress]{Singapore}
+\setbeamertemplate{title page}{%
+  \begin{center}
+    {\sc Projectweek} \\
+    \rule[10pt]{5cm}{1pt} \\
+    {\sc\Huge \inserttitle}
+  \end{center}
+}
+
+\setbeamertemplate{navigation symbols}{}
+
+\makeatletter
+
+\tikzset{
+    git/.cd,
+    commit/.style={draw,circle,minimum size=0.2cm},
+    commit arrow/.style={thick,-latex},
+    ref/.style={draw,fill=blue!50,font=\tiny\ttfamily},
+    head/.style={git/ref,fill=red!50},
+}
+
+\tikzset{
+    fs/.cd,
+    directory/.style={font=\ttfamily},
+    dirlink/.style={thick},
+}
+
+\tikzset{
+  console/.style={fill=black,text=green!50,font=\ttfamily\small},
+  comment box/.style={fill=blue!25,opacity=0.9,text opacity=1,overlay,text=black},
+  comment line/.style={blue,thick,overlay},
+  copy arrow/.style={green!50!black,thick,-latex},
+  move arrow/.style={green!50!black,thick,-latex},
+}
+
+
+\pgfkeys{
+  /fs/directory/.cd,
+  id/.initial=dir,
+  id/.value required,
+  position/.initial={(0,0)},
+  position/.value required,
+  subdirectory of/.code args={#1 distance #2}{\pgfkeysalso{/fs/directory/position={($ (#1) + (0.4,#2 * -0.5) $)}}}
+}
+
+\newcommand{\directory}[2][]{{
+  \pgfkeys{
+    /fs/directory/.cd,
+    #1,
+    /fs/directory/id/.get=\dirid,
+    /fs/directory/position/.get=\dirpos,
+  }
+  \draw[fill] \dirpos coordinate (\dirid) circle[radius=0.05cm] node[anchor=west,fs/directory] (\dirid-node) {#2};
+}}
+
+\pgfkeys{
+  /codeline/.cd,
+  x/.initial=0,
+  y/.initial=0,
+  color/.initial=black,
+}
+
+\newcommand{\codeline}[1][]{{
+  \pgfkeys{
+    /codeline/.cd,
+    #1,
+    /codeline/x/.get=\codeline@xcoordinate,
+    /codeline/y/.get=\codeline@ycoordinate,
+    /codeline/color/.get=\codeline@color,
+  }
+  \tikzmath{
+    real \codeline@width;
+    real \codeline@y;
+    \codeline@y=abs(\codeline@ycoordinate);
+    \codeline@width=mod(\codeline@y*521.2+\codeline@y*\codeline@y*15.4+0.5,3)+0.2;
+  }
+  \draw[thick,\codeline@color] (\codeline@xcoordinate,\codeline@ycoordinate) -- ++(\codeline@width,0);
+}}
+
+\newcommand{\master}{master}
+
+\makeatother
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\input{version-control}
+\input{branching}
+\input{merging}
+\input{gitignore}
+
+\end{document}

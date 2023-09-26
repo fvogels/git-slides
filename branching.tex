@@ -1,0 +1,330 @@
+% IGNORE
+
+\section{Branching}
+
+\begin{frame}
+  \tableofcontents[currentsection]
+\end{frame}
+
+\begin{frame}
+  \frametitle{Problem Statement}
+  \begin{itemize}
+    \item Developing a new feature can take a lot of work
+    \item Multiple teams work on different features in parallel
+    \item Teams do not want to interfere with each other
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Manual Solution}
+  \begin{center}
+    \begin{tikzpicture}
+      \path[use as bounding box] (0,0) rectangle ++(6,-6.5);
+      \directory[id=root,position={(0,0)}]{project}
+      \directory[id=trunk,subdirectory of=root distance 1]{trunk}
+      \directory[id=tb1,subdirectory of=trunk distance 1]{20220329-1531}
+      \directory[id=tb2,subdirectory of=trunk distance 2]{20220330-1022}
+      \directory[id=tb3,subdirectory of=trunk distance 3]{20220330-1357}
+
+      \only<3->{
+        \directory[id=feature a,subdirectory of=root distance 5]{feature-a}
+        \directory[id=a working area,subdirectory of=feature a distance 1]{working-area}
+      }
+
+      \only<5->{
+        \directory[id=a backups,subdirectory of=feature a distance 2]{backups}
+        \directory[id=a backups 1,subdirectory of=a backups distance 1]{20220331-1403}
+      }
+
+      \only<6->{
+        \directory[id=feature b,subdirectory of=root distance 9]{feature-b}
+        \directory[id=b working area,subdirectory of=feature b distance 1]{working-area}
+        \directory[id=b backups,subdirectory of=feature b distance 2]{backups}
+        \directory[id=b backups 1,subdirectory of=b backups distance 1]{20220331-1611}
+      }
+
+      \draw[fs/dirlink] (root) |- (trunk);
+      \draw[fs/dirlink] (trunk) |- (tb1);
+      \draw[fs/dirlink] (trunk) |- (tb2);
+      \draw[fs/dirlink] (trunk) |- (tb3);
+
+      \only<3->{
+        \draw[fs/dirlink] (root) |- (feature a);
+        \draw[fs/dirlink] (feature a) |- (a working area);
+      }
+      \only<5->{
+        \draw[fs/dirlink] (feature a) |- (a backups);
+        \draw[fs/dirlink] (a backups) |- (a backups 1);
+      }
+
+      \only<6->{
+        \draw[fs/dirlink] (root) |- (feature b);
+        \draw[fs/dirlink] (feature b) |- (b working area);
+        \draw[fs/dirlink] (feature b) |- (b backups);
+        \draw[fs/dirlink] (b backups) |- (b backups 1);
+      }
+
+      \only<1>{
+        \draw[comment line,latex-] (trunk-node.east) -- ++(0.5,0) |- ++(2,0.25) node[comment box,anchor=west] (comment) {\parbox{4cm}{Contains all versions of the project}};
+        \draw[comment line,latex-] (tb1-node.east) -| (comment);
+        \draw[comment line,latex-] (tb2-node.east) -| (comment);
+        \draw[comment line,latex-] (tb3-node.east) -| (comment);
+      }
+
+      \only<2>{
+        \draw ($ (trunk-node.east) + (2.5,0.25) $) node[comment box,anchor=west] {\parbox{4cm}{Say we wish to develop some new feature A}};
+      }
+
+      \only<3>{
+        \draw[comment line,latex-] (trunk-node.east) -- ++(0.5,0) |- ++(2,0.25) node[comment box,anchor=west] {\parbox{4cm}{We do not develop directly on \texttt{trunk}}};
+        \draw[comment line,latex-] (a working area-node.south) -- ++(0,-1) node[comment box,anchor=north] {\parbox{4cm}{Instead, we copy the latest version to a separate directory}};
+        \draw[copy arrow] (tb3-node.east) -- ++(0.2,0) |- (a working area-node.east);
+      }
+
+      \only<4>{
+        \draw[comment line,latex-] (a working area-node.south) -- ++(0,-1) node[comment box,anchor=north] {\parbox{4cm}{We develop feature A in this separate directory}};
+      }
+
+      \only<5>{
+        \draw[comment line,latex-] (a backups 1-node.south) -- ++(0,-1) node[comment box,anchor=north] {We regularly make backups};
+        \draw[copy arrow] (a working area-node.east) -- ++(1,0) |- (a backups 1-node.east);
+      }
+
+      \only<6>{
+        \draw[comment line,latex-] (feature b-node.east) -- ++(2,0) node[comment box,anchor=west] (comment) {\parbox{4cm}{A different feature can be developed in parallel by another team in a separate directory}};
+      }
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Git Branches}
+  \begin{center}
+    \begin{tikzpicture}
+      \node[git/commit] (commit 1) at (0,0) {};
+      \node[git/commit] (commit 2) at ($ (commit 1) + (1,0) $) {};
+      \node[git/commit] (commit 3) at ($ (commit 2) + (1,0) $) {};
+      \node[git/commit] (commit 4) at ($ (commit 3) + (1,0) $) {};
+
+      \visible<5->{
+        \node[git/commit] (a commit 1) at ($ (commit 4) + (1,1) $) {};
+      }
+      \visible<6->{
+        \node[git/commit] (a commit 2) at ($ (a commit 1) + (1,0) $) {};
+      }
+      \visible<7->{
+        \node[git/commit] (a commit 3) at ($ (a commit 2) + (1,0) $) {};
+      }
+
+      \visible<8->{
+        \node[git/commit] (b commit 1) at ($ (commit 4) + (1,-1) $) {};
+        \node[git/commit] (b commit 2) at ($ (b commit 1) + (1,0) $) {};
+      }
+
+      \draw[git/commit arrow] (commit 1) -- (commit 2);
+      \draw[git/commit arrow] (commit 2) -- (commit 3);
+      \draw[git/commit arrow] (commit 3) -- (commit 4);
+
+      \visible<5->{
+        \draw[git/commit arrow] (commit 4) -- (a commit 1);
+      }
+      \visible<6->{
+        \draw[git/commit arrow] (a commit 1) -- (a commit 2);
+      }
+      \visible<7->{
+        \draw[git/commit arrow] (a commit 2) -- (a commit 3);
+      }
+
+      \visible<8->{
+        \draw[git/commit arrow] (commit 4) -- (b commit 1);
+        \draw[git/commit arrow] (b commit 1) -- (b commit 2);
+      }
+
+      \visible<3->{
+        \draw[latex-] (commit 4) -- ++(0,-1) node[git/ref] (master) { \master };
+      }
+      \visible<4>{
+        \draw[latex-] (commit 4) -- ++(0,1) node[git/ref] (feature a) { feature-a };
+      }
+      \visible<5>{
+        \draw[latex-] (a commit 1) -- ++(0,1) node[git/ref] (feature a 1) { feature-a };
+      }
+      \visible<6>{
+        \draw[latex-] (a commit 2) -- ++(0,1) node[git/ref] (feature a 2) { feature-a };
+      }
+      \visible<7-8>{
+        \draw[latex-] (a commit 3) -- ++(0,1) node[git/ref] (feature a 3) { feature-a };
+      }
+      \visible<8>{
+        \draw[latex-] (b commit 2) -- ++(0,-1) node[git/ref] (feature b 2) { feature-b };
+      }
+
+      \only<1>{
+        \begin{scope}[overlay]
+          \node[anchor=south,comment box] (comment) at ($ (commit 1) ! 0.5 ! (commit 4) + (0,1) $) {These are the \texttt{trunk} commits};
+          \draw[comment line,-latex] (comment) -- (commit 1);
+          \draw[comment line,-latex] (comment) -- (commit 2);
+          \draw[comment line,-latex] (comment) -- (commit 3);
+          \draw[comment line,-latex] (comment) -- (commit 4);
+        \end{scope}
+      }
+
+      \only<2>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (commit 4) -- ++(0,-1) node[comment box,anchor=north] {Git calls this the "\texttt{master} branch"};
+        \end{scope}
+      }
+
+      \only<3>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (master) -- ++(0,-1) node[comment box,anchor=north] {\parbox{6cm}{Git labels the most recent commit with the name of the branch}};
+        \end{scope}
+      }
+
+      \only<4>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (feature a) -- ++(0,1) node[comment box,anchor=south] {We can create a new branch};
+        \end{scope}
+      }
+
+      \only<5>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (a commit 1) -- ++(-0.75,0.5) node[comment box,anchor=south east] {\parbox{5cm}{We can make commits on this new branch}};
+          \draw[comment line,latex-] (master) -- ++(0,-0.5) node[comment box,anchor=north] {\texttt{\master} still exists at same location};
+        \end{scope}
+      }
+
+      \only<8>{
+        \begin{scope}[overlay]
+          \draw[comment line,latex-] (feature b 2) -- ++(0,-0.5) node[comment box,anchor=north] {\parbox{4.5cm}{We can create as many branches as we wish}};
+        \end{scope}
+      }
+    \end{tikzpicture}
+  \end{center}
+  \vskip1cm
+  \begin{overprint}
+    \onslide<4>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \$ git branch feature-a
+        };
+      \end{tikzpicture}
+    \end{center}
+
+    \onslide<5>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \$ git commit -m "did something for feature a"
+        };
+      \end{tikzpicture}
+    \end{center}
+
+    \onslide<6>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \$ git commit -m "did some more"
+        };
+      \end{tikzpicture}
+    \end{center}
+
+    \onslide<7>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \$ git commit -m "another addition to feature a"
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Git Branches on Disk}
+  \begin{center}
+    \begin{tikzpicture}
+      \directory[id=root,position={(0,0)}]{project}
+      \directory[id=git,subdirectory of=root distance 1]{.git}
+      \directory[id=src,subdirectory of=root distance 2]{src}
+      \directory[id=app,subdirectory of=src distance 1]{app.py}
+
+      \draw[fs/dirlink] (root) |- (git);
+      \draw[fs/dirlink] (root) |- (src);
+      \draw[fs/dirlink] (src) |- (app);
+
+      \begin{scope}[xshift=6cm,yshift=1cm]
+        \node[git/commit] (commit 1) at (0,0) {};
+        \node[git/commit] (commit 2) at ($ (commit 1) + (0,-1) $) {};
+        \node[git/commit] (commit 3) at ($ (commit 2) + (0,-1) $) {};
+        \node[git/commit] (a commit 1) at ($ (commit 3) + (-0.5,-1) $) {};
+        \node[git/commit] (a commit 2) at ($ (a commit 1) + (0,-1) $) {};
+        \node[git/commit] (a commit 3) at ($ (a commit 2) + (0,-1) $) {};
+        \node[git/commit] (b commit 1) at ($ (commit 3) + (0.5,-1) $) {};
+        \node[git/commit] (b commit 2) at ($ (b commit 1) + (0,-1) $) {};
+
+        \draw[git/commit arrow] (commit 1) -- (commit 2);
+        \draw[git/commit arrow] (commit 2) -- (commit 3);
+        \draw[git/commit arrow] (commit 3) -- (a commit 1);
+        \draw[git/commit arrow] (a commit 1) -- (a commit 2);
+        \draw[git/commit arrow] (a commit 2) -- (a commit 3);
+        \draw[git/commit arrow] (commit 3) -- (b commit 1);
+        \draw[git/commit arrow] (b commit 1) -- (b commit 2);
+
+        \draw[latex-] (commit 3) -- ++(0.5,0) node[git/ref,anchor=west] (master) {\master};
+        \draw[latex-] (a commit 3) -- ++(-0.5,0) node[git/ref,anchor=east] (feature a) {feature-a};
+        \draw[latex-] (b commit 2) -- ++(0.5,0) node[git/ref,anchor=west] (feature b) {feature-b};
+
+        \visible<3>{
+          \draw[latex-] (master) -- ++(0,0.5) node[git/head,anchor=south] (head master) { HEAD };
+        }
+        \visible<4>{
+          \draw[latex-] (feature a) -- ++(0,0.5) node[git/head,anchor=south] (head feature a) { HEAD };
+        }
+
+        \only<1>{
+          \begin{scope}[overlay]
+            \draw[comment line,latex-] (root) |- ++ (0.5,1) node[comment box,anchor=west] { \parbox{4cm}{No convoluted directory structure necessary to keep track of branches} };
+          \end{scope}
+        }
+
+        \only<2>{
+          \begin{scope}[overlay]
+            \draw[comment line,latex-] (root) |- ++ (0.5,1) node[comment box,anchor=west] { \parbox{4cm}{Project directory contains "active" branch} };
+            \node[comment box] (comment) at ($ (feature a) + (-0.75,1.25) $) { \parbox{3.5cm}{But which of these branches is active?} };
+            \draw[comment line,-latex] (comment) -- (master);
+            \draw[comment line,-latex] (comment) -- (feature a);
+            \draw[comment line,-latex] (comment) -- (feature b);
+          \end{scope}
+        }
+
+        \only<3>{
+          \begin{scope}[overlay]
+            \draw[comment line,latex-] (head master) |- ++ (0,1) node[comment box,anchor=south] { \parbox{4cm}{\texttt{HEAD} points to active branch} };
+            \draw[comment line,latex-] (root) -- ++(-0.5,0) |- ++ (0.5,-3) node[comment box,anchor=west] (comment) { \parbox{4cm}{Since \texttt{\master} is active, this directory contains that specific version of the code} };
+            \draw[comment line,-latex] (comment) -- (commit 3);
+          \end{scope}
+        }
+
+        \only<4>{
+          \begin{scope}[overlay]
+            \draw[comment line,latex-] (head feature a) -- ++ (-0.5,2.1) node[comment box,anchor=south] { \parbox{3cm}{We can switch to \texttt{feature-a}} };
+            \draw[comment line,latex-] (root) -- ++(-0.5,0) |- ++ (0.5,-3) node[comment box,anchor=west] (comment) { \parbox{3.5cm}{All files will be updated to reflect the new selected version} };
+            \draw[comment line,-latex] (comment) -- (a commit 3);
+          \end{scope}
+        }
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+  \begin{overprint}
+    \onslide<4>
+    \begin{center}
+      \begin{tikzpicture}
+        \node[console] {
+          \$ git checkout feature-a
+        };
+      \end{tikzpicture}
+    \end{center}
+  \end{overprint}
+\end{frame}
